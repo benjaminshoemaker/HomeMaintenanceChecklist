@@ -1,13 +1,13 @@
 /* ===== Craftsman Warm theme ===== */
 :root {
-  --bg: #faf7f2;         /* warm off‑white */
-  --surface: #ffffff;    /* cards/modals */
+  --bg: #faf7f2;
+  --surface: #ffffff;
   --card: #ffffff;
-  --text: #2a2018;       /* deep brown */
-  --muted: #6b5b4d;      /* warm gray-brown */
-  --primary: #2f6b4f;    /* deep green */
+  --text: #2a2018;
+  --muted: #6b5b4d;
+  --primary: #2f6b4f;
   --primary-600: #255540;
-  --border: #e6ddd3;     /* tan border */
+  --border: #e6ddd3;
 }
 
 /* ---- Base styles ---- */
@@ -24,12 +24,8 @@ a:hover { text-decoration: underline; }
 
 .container { max-width: 1080px; margin: 0 auto; padding: 28px; }
 
-.header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 20px;
-}
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .brand { display: flex; align-items: center; gap: 12px; }
-
 .title { font-weight: 700; letter-spacing: 0.2px; }
 
 .card {
@@ -51,15 +47,10 @@ a:hover { text-decoration: underline; }
   color: var(--text); border-radius: 12px; padding: 10px 12px; font-size: 1rem;
 }
 .badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.8rem;
-  color: var(--muted);
+  display: inline-flex; align-items: center;
+  font-size: 0.8rem; color: var(--muted);
   border: 1px solid var(--border);
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: #fff;
-  line-height: 1;
+  padding: 6px 12px; border-radius: 999px; background: #fff; line-height: 1;
 }
 .small { font-size: 0.92rem; color: var(--muted); }
 
@@ -80,8 +71,7 @@ button {
 }
 
 .task {
-  padding: 14px; border: 1px solid var(--border); border-radius: 14px;
-  background: #fff;
+  padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: #fff;
 }
 .task h4 { margin: 0 0 6px 0; }
 .task .meta { font-size: 0.9rem; color: var(--muted); }
@@ -102,12 +92,30 @@ hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 .header .row { align-items: center; }
 
 /* Make task “how‑to” links bold + underlined and clearly colored */
-a.howto-link {
-  font-weight: 700;
-  text-decoration: underline;
-  color: var(--primary-600);
+a.howto-link { font-weight: 700; text-decoration: underline; color: var(--primary-600); }
+a.howto-link:hover { opacity: 0.9; text-decoration: underline; }
+
+/* Footer */
+.site-footer {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
 }
-a.howto-link:hover {
-  opacity: 0.9;
-  text-decoration: underline;
+.gh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.75rem;
 }
+.gh-link:hover { background: #f6efe6; text-decoration: none; }
