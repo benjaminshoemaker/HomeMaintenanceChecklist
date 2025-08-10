@@ -164,7 +164,7 @@ export default function Home() {
           </a>
           <a
             className="gh-link"
-            href="https://www.linkedin.com/in/ben-shoemaker/"
+            href="https://www.linkedin.com/in/benshoemaker000/"
             rel="me"
             target="_blank"
           >
