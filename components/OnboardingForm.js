@@ -1,55 +1,69 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-const FEATURES = [
+const FEATURE_OPTIONS = [
   { id: 'pool', label: 'Pool' },
   { id: 'fireplace', label: 'Fireplace/Chimney' },
-  { id: 'lawn', label: 'Lawn / Irrigation' },
+  { id: 'lawn', label: 'Lawn/Irrigation' },
   { id: 'gas_heat', label: 'Gas Heat' },
   { id: 'attic', label: 'Attic/Basement' },
-  { id: 'septic', label: 'Septic' }
+  { id: 'septic', label: 'Septic' },
 ];
 
 export default function OnboardingForm({ onGenerate, initial }) {
   const [zip, setZip] = useState(initial?.zip || '');
   const [features, setFeatures] = useState(initial?.features || []);
 
-  const toggle = (id) => {
-    setFeatures((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  // IMPORTANT: keep inputs in sync if parent updates `initial` later (e.g., after localStorage load)
+  useEffect(() => {
+    if (initial?.zip !== undefined) setZip(initial.zip || '');
+    if (initial?.features !== undefined) setFeatures(initial.features || []);
+  }, [initial?.zip, initial?.features]); // narrow deps so it only fires when values change
+
+  const toggleFeature = (id) => {
+    setFeatures((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
   };
 
-  const submit = (e) => {
+  const onSubmit = (e) => {
     e.preventDefault();
-    if (!/^[0-9]{5}$/.test(zip)) return alert('Please enter a valid 5-digit ZIP');
-    onGenerate({ zip, features });
+    const cleanedZip = (zip || '').trim();
+    if (!/^\d{5}$/.test(cleanedZip)) {
+      alert('Please enter a valid 5‑digit ZIP code');
+      return;
+    }
+    onGenerate({ zip: cleanedZip, features });
   };
 
   return (
-    <form onSubmit={submit} className="grid">
-      <label className="label">ZIP Code</label>
+    <form onSubmit={onSubmit} className="grid" style={{ gap: 12 }}>
+      <label className="label" htmlFor="zip">ZIP code</label>
       <input
+        id="zip"
         className="input"
+        inputMode="numeric"
+        pattern="\d{5}"
+        placeholder="e.g., 98027"
         value={zip}
         onChange={(e) => setZip(e.target.value)}
-        placeholder="e.g., 98101"
-        maxLength={5}
       />
 
-      <label className="label">Home features</label>
-      <div className="row">
-        {FEATURES.map((f) => (
+      <div className="label" style={{ marginTop: 8 }}>Home features</div>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+        {FEATURE_OPTIONS.map((f) => (
           <label key={f.id} className="checkbox-chip">
-            <input type="checkbox" checked={features.includes(f.id)} onChange={() => toggle(f.id)} />
+            <input
+              type="checkbox"
+              checked={features.includes(f.id)}
+              onChange={() => toggleFeature(f.id)}
+            />
             {f.label}
           </label>
         ))}
       </div>
 
-      <div className="row">
-        <button className="primary" type="submit">
-          Generate my checklist
-        </button>
+      <div className="row" style={{ marginTop: 8 }}>
+        <button className="primary" type="submit">Generate checklist</button>
         <button
           className="secondary"
           type="button"
@@ -61,12 +75,6 @@ export default function OnboardingForm({ onGenerate, initial }) {
           Reset
         </button>
       </div>
-
-      <p className="small">
-        We store this locally in guest mode. Sign in with Google to save and sync across devices.
-        Exported calendar events are placed on <strong>Saturday 9:00 AM (local time)</strong>, spaced evenly through the season.
-        If there are more tasks than Saturdays, we’ll also use <strong>Sunday 9:00 AM</strong>.
-      </p>
     </form>
   );
 }
