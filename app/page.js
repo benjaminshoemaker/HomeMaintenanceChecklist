@@ -8,8 +8,8 @@ import { supabase } from '../lib/supabaseClient';
 import { currentSeason, generateTasks } from '../utils/generateTasks';
 
 const LS_KEYS = {
-  profile: 'shc_profile_v1',   // { zip, features: [] }
-  status: 'shc_task_status_v1' // { [taskId]: { s: 'completed'|'skipped'|'snoozed', at: number } }
+  profile: 'shc_profile_v1',
+  status: 'shc_task_status_v1'
 };
 
 export default function Home() {
@@ -19,9 +19,8 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [savePrompt, setSavePrompt] = useState(false);
-  const [booted, setBooted] = useState(false); // <-- guard so we don't overwrite localStorage on first paint
+  const [booted, setBooted] = useState(false);
 
-  // Auth (implicit)
   useEffect(() => {
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) console.error('getSession error', error);
@@ -35,7 +34,6 @@ export default function Home() {
     return () => sub.data.subscription.unsubscribe();
   }, []);
 
-  // Load local state once on mount
   useEffect(() => {
     try {
       const rawP = localStorage.getItem(LS_KEYS.profile);
@@ -51,11 +49,10 @@ export default function Home() {
     } catch (e) {
       console.warn('Failed to load local state', e);
     } finally {
-      setBooted(true); // <-- now it's safe to allow the persist effect
+      setBooted(true);
     }
   }, []);
 
-  // Persist status when it changes — but ONLY after we've loaded (booted)
   useEffect(() => {
     if (!booted) return;
     try {
@@ -134,7 +131,6 @@ export default function Home() {
       <div className="grid grid-2">
         <div className="card">
           <h3>1) Tell us about your home</h3>
-          {/* initial={profile} now updates dynamically via OnboardingForm fix below */}
           <OnboardingForm onGenerate={onGenerate} initial={profile} />
         </div>
         <div className="card">
@@ -147,6 +143,37 @@ export default function Home() {
           />
         </div>
       </div>
+
+      <footer className="site-footer">
+        <span className="small">Built with Next.js & Supabase · Deployed on Render</span>
+        <div className="row" style={{ gap: 8 }}>
+          <a
+            className="gh-link"
+            href="https://github.com/benjaminshoemaker/HomeMaintenanceChecklist"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View source on GitHub
+          </a>
+          <a
+            className="gh-link"
+            href="mailto:ben.shoemaker.xyz@gmail.com?subject=Seasonal%20Home%20Checklist%20feedback"
+            aria-label="Send feedback email"
+          >
+            Feedback
+          </a>
+          <a
+            className="gh-link"
+            href="https://www.linkedin.com/in/ben-shoemaker/"
+            rel="me"
+            target="_blank"
+          >
+            LinkedIn
+          </a>
+        </div>
+      </footer>
+
+
 
       {savePrompt && !user && (
         <SavePromptModal
