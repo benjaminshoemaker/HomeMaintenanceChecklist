@@ -9,8 +9,20 @@ import { currentSeason, generateTasks } from '../utils/generateTasks';
 
 const LS_KEYS = {
   profile: 'shc_profile_v1',
-  status: 'shc_task_status_v1'
+  status: 'shc_task_status_v1',
+  updatedAt: 'shc_updated_at_v1'
 };
+
+// Keep only status entries that match the current task list
+function pickStatusForTasks(statusObj, tasksArr) {
+  if (!statusObj || !tasksArr?.length) return {};
+  const allowed = new Set(tasksArr.map(t => t.id));
+  const next = {};
+  for (const [k, v] of Object.entries(statusObj)) {
+    if (allowed.has(k)) next[k] = v;
+  }
+  return next;
+}
 
 export default function Home() {
   const [profile, setProfile] = useState(null);
@@ -21,6 +33,11 @@ export default function Home() {
   const [savePrompt, setSavePrompt] = useState(false);
   const [booted, setBooted] = useState(false);
 
+  // Cloud status
+  const [cloudSaving, setCloudSaving] = useState(false);
+  const [cloudSavedAt, setCloudSavedAt] = useState(null);
+
+  // 1) Auth boot
   useEffect(() => {
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) console.error('getSession error', error);
@@ -34,7 +51,24 @@ export default function Home() {
     return () => sub.data.subscription.unsubscribe();
   }, []);
 
+  // Recompute tasks whenever the profile changes (works for guest + signed-in)
   useEffect(() => {
+    const p = profile;
+    if (!p || !p.zip) {
+      setTasks([]);
+      return;
+    }
+    const season = currentSeason();
+    setTasks(generateTasks({ zip: p.zip, features: p.features || [], season }));
+  }, [profile]);
+
+  // 2) Guest boot: only load localStorage if NOT signed in
+  useEffect(() => {
+    if (authLoading) return;
+    if (user) {
+      setBooted(true);
+      return; // skip local entirely when signed in
+    }
     try {
       const rawP = localStorage.getItem(LS_KEYS.profile);
       const rawS = localStorage.getItem(LS_KEYS.status);
@@ -51,23 +85,130 @@ export default function Home() {
     } finally {
       setBooted(true);
     }
-  }, []);
+  }, [authLoading, user]);
 
+  // 3) Signed‑in boot: load from cloud; if no cloud doc yet, migrate local once then CLEAR local
   useEffect(() => {
-    if (!booted) return;
+    if (authLoading || !user) return;
+
+    (async () => {
+      try {
+        // Try cloud first
+        const { data, error } = await supabase
+          .from('user_state')
+          .select('profile, status, updated_at')
+          .eq('auth_uid', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Fetch user_state error', error);
+          setBooted(true);
+          return;
+        }
+
+        if (data) {
+          // Build tasks from cloud profile, then align status to those tasks
+          const p = data.profile || null;
+          const season = currentSeason();
+          const nextTasks = (p?.zip)
+            ? generateTasks({ zip: p.zip, features: p.features || [], season })
+            : [];
+          const nextStatus = pickStatusForTasks(data.status || {}, nextTasks);
+
+          setProfile(p);
+          setTasks(nextTasks);
+          setStatus(nextStatus);
+          setCloudSavedAt(data.updated_at || null);
+        } else {
+          // No cloud doc yet — migrate any existing local, then CLEAR local
+          let localProfile = null, localStatus = null;
+          try {
+            localProfile = JSON.parse(localStorage.getItem(LS_KEYS.profile) || 'null');
+            localStatus = JSON.parse(localStorage.getItem(LS_KEYS.status) || '{}');
+          } catch {}
+
+          const season = currentSeason();
+          const nextTasks = (localProfile?.zip)
+            ? generateTasks({ zip: localProfile.zip, features: localProfile.features || [], season })
+            : [];
+          const nextStatus = pickStatusForTasks(localStatus || {}, nextTasks);
+
+          const payload = {
+            auth_uid: user.id,
+            email: user.email,
+            profile: localProfile || {},
+            status: nextStatus, // store only aligned status
+            updated_at: new Date().toISOString()
+          };
+          const { error: upsertErr } = await supabase.from('user_state').upsert(payload);
+          if (upsertErr) {
+            console.error('Initial upsert error', upsertErr);
+          } else {
+            setProfile(payload.profile);
+            setTasks(nextTasks);
+            setStatus(nextStatus);
+            setCloudSavedAt(payload.updated_at);
+          }
+        }
+      } finally {
+        // Wipe localStorage to remove ambiguity while signed in
+        try {
+          localStorage.removeItem(LS_KEYS.profile);
+          localStorage.removeItem(LS_KEYS.status);
+          localStorage.removeItem(LS_KEYS.updatedAt);
+        } catch {}
+        setBooted(true);
+      }
+    })();
+  }, [authLoading, user]);
+
+  // 4) While signed in, NEVER touch localStorage; autosave changes to cloud
+  useEffect(() => {
+    if (!booted || !user) return;
+    const doSave = async () => {
+      try {
+        setCloudSaving(true);
+        const payload = {
+          auth_uid: user.id,
+          email: user.email,
+          profile: profile || {},
+          status: status || {},
+          updated_at: new Date().toISOString()
+        };
+        const { error } = await supabase.from('user_state').upsert(payload);
+        if (error) {
+          console.error('Cloud save error', error);
+        } else {
+          setCloudSavedAt(payload.updated_at);
+        }
+      } finally {
+        setCloudSaving(false);
+      }
+    };
+    doSave();
+  }, [profile, status, user, booted]);
+
+  // 5) Guest: persist to localStorage (signed‑out only)
+  useEffect(() => {
+    if (!booted || user) return; // only guests
     try {
       localStorage.setItem(LS_KEYS.status, JSON.stringify(status || {}));
     } catch {}
-  }, [status, booted]);
+  }, [status, booted, user]);
 
   const onGenerate = (p) => {
     setProfile(p);
-    try {
-      localStorage.setItem(LS_KEYS.profile, JSON.stringify(p));
-    } catch {}
     const season = currentSeason();
     setTasks(generateTasks({ zip: p.zip, features: p.features, season }));
-    if (!user) setSavePrompt(true);
+
+    if (!user) {
+      // guest mode: keep local in sync
+      try {
+        localStorage.setItem(LS_KEYS.profile, JSON.stringify(p));
+        localStorage.setItem(LS_KEYS.updatedAt, new Date().toISOString());
+      } catch {}
+      setSavePrompt(true);
+    }
   };
 
   const onICS = async () => {
@@ -97,7 +238,7 @@ export default function Home() {
         <div className="brand">
           <div>
             <div className="title">Seasonal Home Checklist</div>
-            <div className="small">Quarterly tasks by ZIP & features. Guest mode first; sign in to save with Google.</div>
+            <div className="small">Quarterly tasks by ZIP & features. Sign in to save your progress across devices.</div>
           </div>
         </div>
         <div className="row">
@@ -106,6 +247,7 @@ export default function Home() {
           ) : user ? (
             <>
               <span className="badge">Signed in: {user.email}</span>
+              {cloudSaving ? <span className="badge">...</span> : (cloudSavedAt ? <span className="badge">Saved</span> : null)}
               <button className="secondary" onClick={() => supabase.auth.signOut()}>Sign out</button>
             </>
           ) : (
@@ -172,8 +314,6 @@ export default function Home() {
           </a>
         </div>
       </footer>
-
-
 
       {savePrompt && !user && (
         <SavePromptModal
