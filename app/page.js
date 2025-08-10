@@ -7,22 +7,27 @@ import SavePromptModal from '../components/SavePromptModal';
 import { supabase } from '../lib/supabaseClient';
 import { currentSeason, generateTasks } from '../utils/generateTasks';
 
+const LS_KEYS = {
+  profile: 'shc_profile_v1',   // { zip, features: [] }
+  status: 'shc_task_status_v1' // { [taskId]: { s: 'completed'|'skipped'|'snoozed', at: number } }
+};
+
 export default function Home() {
-  const [profile, setProfile] = useState(null);       // { zip, features: [] }
+  const [profile, setProfile] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [status, setStatus] = useState({});
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [savePrompt, setSavePrompt] = useState(false);
+  const [booted, setBooted] = useState(false); // <-- guard so we don't overwrite localStorage on first paint
 
+  // Auth (implicit)
   useEffect(() => {
-    // Initialize auth from session; implicit flow will parse tokens from URL hash automatically
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) console.error('getSession error', error);
       setUser(data?.session?.user ?? null);
       setAuthLoading(false);
     });
-
-    // Keep user state live
     const sub = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
@@ -30,21 +35,41 @@ export default function Home() {
     return () => sub.data.subscription.unsubscribe();
   }, []);
 
+  // Load local state once on mount
   useEffect(() => {
-    if (profile) {
-      const season = currentSeason();
-      const generated = generateTasks({ zip: profile.zip, features: profile.features, season });
-      setTasks(generated);
-    } else {
-      setTasks([]);
+    try {
+      const rawP = localStorage.getItem(LS_KEYS.profile);
+      const rawS = localStorage.getItem(LS_KEYS.status);
+      const p = rawP ? JSON.parse(rawP) : null;
+      const s = rawS ? JSON.parse(rawS) : {};
+      if (p) {
+        setProfile(p);
+        const season = currentSeason();
+        setTasks(generateTasks({ zip: p.zip, features: p.features, season }));
+      }
+      if (s) setStatus(s);
+    } catch (e) {
+      console.warn('Failed to load local state', e);
+    } finally {
+      setBooted(true); // <-- now it's safe to allow the persist effect
     }
-  }, [profile]);
+  }, []);
+
+  // Persist status when it changes — but ONLY after we've loaded (booted)
+  useEffect(() => {
+    if (!booted) return;
+    try {
+      localStorage.setItem(LS_KEYS.status, JSON.stringify(status || {}));
+    } catch {}
+  }, [status, booted]);
 
   const onGenerate = (p) => {
-    setProfile(p); // ephemeral only
+    setProfile(p);
+    try {
+      localStorage.setItem(LS_KEYS.profile, JSON.stringify(p));
+    } catch {}
     const season = currentSeason();
-    const generated = generateTasks({ zip: p.zip, features: p.features, season });
-    setTasks(generated);
+    setTasks(generateTasks({ zip: p.zip, features: p.features, season }));
     if (!user) setSavePrompt(true);
   };
 
@@ -109,11 +134,17 @@ export default function Home() {
       <div className="grid grid-2">
         <div className="card">
           <h3>1) Tell us about your home</h3>
-          <OnboardingForm onGenerate={onGenerate} initial={null} />
+          {/* initial={profile} now updates dynamically via OnboardingForm fix below */}
+          <OnboardingForm onGenerate={onGenerate} initial={profile} />
         </div>
         <div className="card">
           <h3>2) Your {currentSeason()} checklist</h3>
-          <Checklist tasks={tasks} onICS={onICS} />
+          <Checklist
+            tasks={tasks}
+            status={status}
+            onStatusChange={(next) => setStatus(next)}
+            onICS={onICS}
+          />
         </div>
       </div>
 

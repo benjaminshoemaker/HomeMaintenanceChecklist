@@ -1,9 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-
-function TaskCard({ task, onStatus, st }) {
-  const state = st[task.id]; // 'completed' | 'skipped' | 'snoozed' | undefined
+function TaskCard({ task, st, onStatus }) {
+  const state = st?.[task.id]?.s; // 'completed' | 'skipped' | undefined
   const isDone = state === 'completed';
   const isSkipped = state === 'skipped';
 
@@ -14,45 +12,54 @@ function TaskCard({ task, onStatus, st }) {
       <div className="meta">
         Est. time: {task.est_time} |{' '}
         <a href={task.instructions_url} target="_blank" rel="noreferrer noopener external" className="howto-link">
-          How‑to
+          How-to
         </a>
       </div>
       <div className="row" style={{ marginTop: 8 }}>
-        <button className="primary" onClick={() => onStatus(task.id, isDone ? undefined : 'completed')}>
-          {isDone ? 'Mark undone' : 'Complete'}
+        <button
+          className="primary"
+          onClick={() => onStatus(task.id, isDone ? undefined : 'completed')}
+        >
+          {isDone ? 'Mark undone' : 'Mark completed'}
         </button>
-        <button className="secondary" onClick={() => onStatus(task.id, isSkipped ? undefined : 'skipped')}>
+        <button
+          className="secondary"
+          onClick={() => onStatus(task.id, isSkipped ? undefined : 'skipped')}
+        >
           {isSkipped ? 'Unskip' : 'Skip'}
         </button>
-        <button className="secondary" onClick={() => onStatus(task.id, 'snoozed')}>Snooze</button>
       </div>
     </div>
   );
 }
 
-export default function Checklist({ tasks, onICS }) {
-  const [status, setStatus] = useState({}); // ephemeral only
-
+export default function Checklist({ tasks, status, onStatusChange, onICS }) {
   const onStatus = (id, s) => {
-    setStatus((prev) => {
-      const next = { ...prev };
-      if (!s) delete next[id]; else next[id] = s;
-      return next;
-    });
+    const next = { ...(status || {}) };
+    if (!s) delete next[id];
+    else next[id] = { s, at: Date.now() };
+    onStatusChange(next);
   };
 
   const hasTasks = tasks && tasks.length > 0;
 
   return (
     <div className="grid">
-      {!hasTasks && <p className="small">No tasks yet. Complete the form to generate your seasonal checklist.</p>}
+      {!hasTasks && (
+        <p className="small">No tasks yet. Complete the form to generate your seasonal checklist.</p>
+      )}
       {hasTasks && (
         <>
-          <div className="row" style={{ marginTop: 8, alignItems: 'center', justifyContent: 'space-between' }}>
-            <button className="primary" onClick={onICS}>Export as .ics</button>
+          <div
+            className="row"
+            style={{ marginTop: 8, alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <button className="primary" onClick={onICS}>
+              Export as .ics
+            </button>
             <span className="small">
-              Calendar events are scheduled for <strong>Saturday 9:00 AM (local time)</strong>, spaced across the season.
-              If Saturdays fill up, we’ll also use <strong>Sunday 9:00 AM</strong>.
+              Calendar events are scheduled for <strong>Saturday 9:00 AM (local time)</strong>, spaced
+              across the season. If Saturdays fill up, we’ll also use <strong>Sunday 9:00 AM</strong>.
             </span>
           </div>
           <div className="grid" style={{ gap: 10 }}>
