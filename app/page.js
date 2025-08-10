@@ -13,17 +13,6 @@ const LS_KEYS = {
   updatedAt: 'shc_updated_at_v1'
 };
 
-// Keep only status entries that match the current task list
-function pickStatusForTasks(statusObj, tasksArr) {
-  if (!statusObj || !tasksArr?.length) return {};
-  const allowed = new Set(tasksArr.map(t => t.id));
-  const next = {};
-  for (const [k, v] of Object.entries(statusObj)) {
-    if (allowed.has(k)) next[k] = v;
-  }
-  return next;
-}
-
 export default function Home() {
   const [profile, setProfile] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -36,6 +25,9 @@ export default function Home() {
   // Cloud status
   const [cloudSaving, setCloudSaving] = useState(false);
   const [cloudSavedAt, setCloudSavedAt] = useState(null);
+
+  // NEW: block autosave until cloud load/merge finishes
+  const [synced, setSynced] = useState(false);
 
   // 1) Auth boot
   useEffect(() => {
@@ -93,6 +85,8 @@ export default function Home() {
 
     (async () => {
       try {
+        setSynced(false); // <- block autosave during initial cloud fetch/merge
+
         // Try cloud first
         const { data, error } = await supabase
           .from('user_state')
@@ -102,22 +96,21 @@ export default function Home() {
 
         if (error) {
           console.error('Fetch user_state error', error);
-          setBooted(true);
           return;
         }
 
         if (data) {
-          // Build tasks from cloud profile, then align status to those tasks
+          // Use cloud
           const p = data.profile || null;
-          const season = currentSeason();
-          const nextTasks = (p?.zip)
-            ? generateTasks({ zip: p.zip, features: p.features || [], season })
-            : [];
-          const nextStatus = pickStatusForTasks(data.status || {}, nextTasks);
-
+          const s = data.status || {};
           setProfile(p);
-          setTasks(nextTasks);
-          setStatus(nextStatus);
+          if (p?.zip) {
+            const season = currentSeason();
+            setTasks(generateTasks({ zip: p.zip, features: p.features || [], season }));
+          } else {
+            setTasks([]);
+          }
+          setStatus(s);
           setCloudSavedAt(data.updated_at || null);
         } else {
           // No cloud doc yet — migrate any existing local, then CLEAR local
@@ -127,17 +120,11 @@ export default function Home() {
             localStatus = JSON.parse(localStorage.getItem(LS_KEYS.status) || '{}');
           } catch {}
 
-          const season = currentSeason();
-          const nextTasks = (localProfile?.zip)
-            ? generateTasks({ zip: localProfile.zip, features: localProfile.features || [], season })
-            : [];
-          const nextStatus = pickStatusForTasks(localStatus || {}, nextTasks);
-
           const payload = {
             auth_uid: user.id,
             email: user.email,
             profile: localProfile || {},
-            status: nextStatus, // store only aligned status
+            status: localStatus || {},
             updated_at: new Date().toISOString()
           };
           const { error: upsertErr } = await supabase.from('user_state').upsert(payload);
@@ -145,8 +132,13 @@ export default function Home() {
             console.error('Initial upsert error', upsertErr);
           } else {
             setProfile(payload.profile);
-            setTasks(nextTasks);
-            setStatus(nextStatus);
+            if (payload.profile?.zip) {
+              const season = currentSeason();
+              setTasks(generateTasks({ zip: payload.profile.zip, features: payload.profile.features || [], season }));
+            } else {
+              setTasks([]);
+            }
+            setStatus(payload.status);
             setCloudSavedAt(payload.updated_at);
           }
         }
@@ -158,13 +150,14 @@ export default function Home() {
           localStorage.removeItem(LS_KEYS.updatedAt);
         } catch {}
         setBooted(true);
+        setSynced(true); // <- now allow autosave
       }
     })();
   }, [authLoading, user]);
 
   // 4) While signed in, NEVER touch localStorage; autosave changes to cloud
   useEffect(() => {
-    if (!booted || !user) return;
+    if (!booted || !user || !synced) return; // <- guard with synced
     const doSave = async () => {
       try {
         setCloudSaving(true);
@@ -186,7 +179,7 @@ export default function Home() {
       }
     };
     doSave();
-  }, [profile, status, user, booted]);
+  }, [profile, status, user, booted, synced]);
 
   // 5) Guest: persist to localStorage (signed‑out only)
   useEffect(() => {
@@ -247,7 +240,7 @@ export default function Home() {
           ) : user ? (
             <>
               <span className="badge">Signed in: {user.email}</span>
-              {cloudSaving ? <span className="badge">...</span> : (cloudSavedAt ? <span className="badge">Saved</span> : null)}
+              {cloudSaving ? <span className="badge">…</span> : (cloudSavedAt ? <span className="badge">Saved</span> : null)}
               <button className="secondary" onClick={() => supabase.auth.signOut()}>Sign out</button>
             </>
           ) : (
