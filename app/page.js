@@ -1,37 +1,50 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OnboardingForm from '../components/OnboardingForm';
 import Checklist from '../components/Checklist';
 import SavePromptModal from '../components/SavePromptModal';
 import { supabase } from '../lib/supabaseClient';
-import { generateTasks, currentSeason } from '../utils/generateTasks';
+import { currentSeason, generateTasks } from '../utils/generateTasks';
 
 export default function Home() {
   const [profile, setProfile] = useState(null);       // { zip, features: [] }
   const [tasks, setTasks] = useState([]);
   const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [savePrompt, setSavePrompt] = useState(false);
 
   useEffect(() => {
-    // Load guest profile from localStorage
-    const raw = localStorage.getItem('shc_profile_v1');
-    if (raw) setProfile(JSON.parse(raw));
-    // Auth session
-    supabase.auth.getUser().then(({ data }) => setUser(data.user || null));
+    // Initialize auth from session; implicit flow will parse tokens from URL hash automatically
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) console.error('getSession error', error);
+      setUser(data?.session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    // Keep user state live
     const sub = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setAuthLoading(false);
     });
     return () => sub.data.subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (profile) {
+      const season = currentSeason();
+      const generated = generateTasks({ zip: profile.zip, features: profile.features, season });
+      setTasks(generated);
+    } else {
+      setTasks([]);
+    }
+  }, [profile]);
+
   const onGenerate = (p) => {
-    setProfile(p);
-    localStorage.setItem('shc_profile_v1', JSON.stringify(p));
+    setProfile(p); // ephemeral only
     const season = currentSeason();
     const generated = generateTasks({ zip: p.zip, features: p.features, season });
     setTasks(generated);
-    // Show save prompt after first generation (only if not signed in)
     if (!user) setSavePrompt(true);
   };
 
@@ -40,7 +53,7 @@ export default function Home() {
       const res = await fetch('/api/ics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tasks })
+        body: JSON.stringify({ tasks, zip: profile?.zip })
       });
       if (!res.ok) throw new Error('Failed to generate ICS');
       const blob = await res.blob();
@@ -58,17 +71,37 @@ export default function Home() {
 
   return (
     <div className="container">
-      <div className="card" style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0 }}>Seasonal Home Checklist</h1>
-        <p className="small">Personalized quarterly tasks by ZIP & home features. Guest mode first; sign in to save with Google.</p>
+      <div className="header">
+        <div className="brand">
+          <div>
+            <div className="title">Seasonal Home Checklist</div>
+            <div className="small">Quarterly tasks by ZIP & features. Guest mode first; sign in to save with Google.</div>
+          </div>
+        </div>
         <div className="row">
-          {user ? (
+          {authLoading ? (
+            <span className="badge">Checking sign‑in…</span>
+          ) : user ? (
             <>
               <span className="badge">Signed in: {user.email}</span>
               <button className="secondary" onClick={() => supabase.auth.signOut()}>Sign out</button>
             </>
           ) : (
-            <button className="secondary" onClick={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: process.env.NEXT_PUBLIC_SITE_URL } })}>Continue with Google</button>
+            <button
+              className="secondary"
+              onClick={async () => {
+                const { error } = await supabase.auth.signInWithOAuth({
+                  provider: 'google',
+                  options: { redirectTo: process.env.NEXT_PUBLIC_SITE_URL }
+                });
+                if (error) {
+                  console.error('OAuth error', error);
+                  alert('Google sign-in failed: ' + error.message);
+                }
+              }}
+            >
+              Continue with Google
+            </button>
           )}
         </div>
       </div>
@@ -76,7 +109,7 @@ export default function Home() {
       <div className="grid grid-2">
         <div className="card">
           <h3>1) Tell us about your home</h3>
-          <OnboardingForm onGenerate={onGenerate} initial={profile} />
+          <OnboardingForm onGenerate={onGenerate} initial={null} />
         </div>
         <div className="card">
           <h3>2) Your {currentSeason()} checklist</h3>
@@ -87,7 +120,16 @@ export default function Home() {
       {savePrompt && !user && (
         <SavePromptModal
           onClose={() => setSavePrompt(false)}
-          onSignIn={() => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: process.env.NEXT_PUBLIC_SITE_URL } })}
+          onSignIn={async () => {
+            const { error } = await supabase.auth.signInWithOAuth({
+              provider: 'google',
+              options: { redirectTo: process.env.NEXT_PUBLIC_SITE_URL }
+            });
+            if (error) {
+              console.error('OAuth error', error);
+              alert('Google sign-in failed: ' + error.message);
+            }
+          }}
         />
       )}
     </div>

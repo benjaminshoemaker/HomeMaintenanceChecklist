@@ -10,10 +10,14 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
+    "@touch4it/ical-timezones": "^1.9.0",
     "date-fns": "^3.6.0",
+    "ical-generator": "^9.0.0",
     "ics": "^3.7.6",
+    "luxon": "^3.7.1",
     "next": "^14.2.5",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zipcode-to-timezone": "^0.0.9"
   }
 }
