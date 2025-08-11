@@ -1,0 +1,41 @@
+// src/data/taskTemplates.anytime.ts
+export type AnytimeTaskTemplate = {
+  id: string;
+  season: 'Anytime';
+  category: string;
+  title: string;
+  details?: string;
+  cadence?: string;
+  instructions_url: string;
+  regions: string[];
+  features: string[];
+};
+
+export const TASK_TEMPLATES_ANYTIME: AnytimeTaskTemplate[] = [
+  {"id": "any1", "season": "Anytime", "category": "Appliances", "title": "Clean washing machine gasket and run tub clean", "details": "Use washer cleaner; prevents odor.", "cadence": "Monthly", "instructions_url": "https://www.energy.gov/energysaver/energy-saver", "regions": [], "features": ["Front-load Washer"]},
+  {"id": "any2", "season": "Anytime", "category": "Appliances", "title": "Vacuum dryer cabinet (pro) if heavy lint", "details": "Reduce fire risk.", "cadence": "2–3 years", "instructions_url": "https://www.usfa.fema.gov/downloads/pdf/publications/clothes_dryer_fire_safety_flyer.pdf", "regions": [], "features": []},
+  {"id": "any3", "season": "Anytime", "category": "Drains", "title": "Flush rarely used drains", "details": "Run water to keep traps filled.", "cadence": "Quarterly", "instructions_url": "https://www.thespruce.com/how-to-fix-dry-p-trap-4684533", "regions": [], "features": []},
+  {"id": "any4", "season": "Anytime", "category": "EV", "title": "Inspect EVSE cable and GFCI", "details": "Check for cuts/wear; test GFCI function.", "cadence": "Annually", "instructions_url": "https://www.esfi.org/resource/gfci-outlet-safety/", "regions": [], "features": ["EV Charger"]},
+  {"id": "any5", "season": "Anytime", "category": "Earthquake", "title": "Secure tall furniture and cabinets", "details": "Anti-tip brackets; child latches for glassware.", "cadence": "One-time + inspect", "instructions_url": "https://www.energy.gov/energysaver/energy-saver", "regions": ["earthquake"], "features": []},
+  {"id": "any6", "season": "Anytime", "category": "Earthquake", "title": "Verify water heater seismic strapping", "details": "Strap top and bottom; install earthquake valves where required.", "cadence": "One-time + inspect", "instructions_url": "https://www.thespruce.com/flush-a-water-heater-1900454", "regions": ["earthquake"], "features": []},
+  {"id": "any7", "season": "Anytime", "category": "Electrical", "title": "Test GFCI/AFCI outlets/breakers", "details": "Press test/reset; replace if non-responsive.", "cadence": "Quarterly", "instructions_url": "https://www.esfi.org/resource/gfci-outlet-safety/", "regions": [], "features": []},
+  {"id": "any8", "season": "Anytime", "category": "General", "title": "Lubricate door hinges and garage door rollers", "details": "Use silicone or white lithium grease.", "cadence": "Quarterly", "instructions_url": "https://www.cpsc.gov/s3fs-public/garage.pdf", "regions": [], "features": []},
+  {"id": "any9", "season": "Anytime", "category": "HVAC", "title": "Replace/clean HVAC filter", "details": "1–3 months depending on filter type and pets.", "cadence": "Monthly", "instructions_url": "https://www.thisoldhouse.com/heating-cooling/21018008/how-to-change-a-furnace-filter", "regions": [], "features": []},
+  {"id": "any10", "season": "Anytime", "category": "Interior", "title": "Check caulk in showers/tubs", "details": "Prevent leaks; re-caulk if gaps/moldy.", "cadence": "Semiannual", "instructions_url": "https://www.homedepot.com/c/ah/how-to-caulk-a-shower/9ba683603be9fa5395fab90c12e9b0b8", "regions": [], "features": []},
+  {"id": "any11", "season": "Anytime", "category": "Interior", "title": "Test sump/basement alarms (if installed)", "details": "Verify alerts/backup power.", "cadence": "Quarterly", "instructions_url": "https://www.familyhandyman.com/project/sump-pump-maintenance-checklist/", "regions": [], "features": ["Sump Alarm"]},
+  {"id": "any12", "season": "Anytime", "category": "Kitchen", "title": "Clean dishwasher filter and run cleaning cycle", "details": "Use dishwasher cleaner or vinegar cycle.", "cadence": "Monthly", "instructions_url": "https://www.consumerreports.org/appliances/dishwashers/how-to-clean-your-dishwasher-filter-a7398510973/", "regions": [], "features": []},
+  {"id": "any13", "season": "Anytime", "category": "Kitchen", "title": "Degrease range hood and wash filter", "details": "Soak metal filter; wipe fan housing.", "cadence": "Monthly", "instructions_url": "https://www.homedepot.com/c/ah/how-to-clean-a-range-hood/9ba683603be9fa5395fab901e2979e80", "regions": [], "features": []},
+  {"id": "any14", "season": "Anytime", "category": "Kitchen", "title": "Freshen garbage disposal", "details": "Ice + baking soda + vinegar; run cold water.", "cadence": "Monthly", "instructions_url": "https://www.thespruce.com/clean-a-garbage-disposal-2718753", "regions": [], "features": []},
+  {"id": "any15", "season": "Anytime", "category": "Laundry", "title": "Inspect washer hoses", "details": "Replace bulging or >5-year-old rubber hoses.", "cadence": "Annually", "instructions_url": "https://www.statefarm.com/simple-insights/auto-and-home/how-to-replace-a-washing-machine-hose", "regions": [], "features": []},
+  {"id": "any16", "season": "Anytime", "category": "Plumbing", "title": "Descale showerheads/aerators", "details": "Soak in vinegar; improves flow.", "cadence": "Quarterly", "instructions_url": "https://www.epa.gov/watersense/bathrooms#showerheads", "regions": [], "features": []},
+  {"id": "any17", "season": "Anytime", "category": "Plumbing", "title": "Inspect under-sink traps for drips", "details": "Look for moisture, corrosion, or swelling cabinets.", "cadence": "Monthly", "instructions_url": "https://www.thespruce.com/how-to-fix-a-leaky-p-trap-2718750", "regions": [], "features": []},
+  {"id": "any18", "season": "Anytime", "category": "Pool/Spa", "title": "Weekly chemistry check and skimming", "details": "Maintain chlorine/pH/alkalinity.", "cadence": "Weekly", "instructions_url": "https://www.thisoldhouse.com/pools/21016688/how-to-maintain-a-pool", "regions": [], "features": ["Pool/Spa"]},
+  {"id": "any19", "season": "Anytime", "category": "Safety", "title": "Check fire extinguisher gauge", "details": "Ensure needle in green; replace/charge if low.", "cadence": "Quarterly", "instructions_url": "https://www.nfpa.org/education-and-research/home-fire-safety/fire-extinguishers", "regions": [], "features": []},
+  {"id": "any20", "season": "Anytime", "category": "Safety", "title": "Test smoke and CO alarms", "details": "Press test button; replace devices every 7–10 years.", "cadence": "Monthly", "instructions_url": "https://www.usfa.fema.gov/safety/smoke-alarms/", "regions": [], "features": []},
+  {"id": "any21", "season": "Anytime", "category": "Safety", "title": "Update household emergency kit and contacts", "details": "Water, food, meds, flashlights, chargers.", "cadence": "Annually", "instructions_url": "https://www.ready.gov/kit", "regions": [], "features": []},
+  {"id": "any22", "season": "Anytime", "category": "Safety", "title": "Verify address numbers visible at night", "details": "Replace faded or obstructed numbers.", "cadence": "Annually", "instructions_url": "https://www.readyforwildfire.org/plan/prepare/", "regions": [], "features": []},
+  {"id": "any23", "season": "Anytime", "category": "Septic", "title": "Protect drainfield", "details": "No parking; divert roof runoff away.", "cadence": "Ongoing", "instructions_url": "https://www.energy.gov/energysaver/energy-saver", "regions": [], "features": ["Septic"]},
+  {"id": "any24", "season": "Anytime", "category": "Septic", "title": "Pump septic tank", "details": "Typical every 3–5 years depending on usage.", "cadence": "3–5 years", "instructions_url": "https://www.energy.gov/energysaver/energy-saver", "regions": [], "features": ["Septic"]},
+  {"id": "any25", "season": "Anytime", "category": "Water", "title": "Check water softener salt", "details": "Refill to above water level; break salt bridges.", "cadence": "Monthly", "instructions_url": "https://www.mortonwatersofteners.com/blog/how-to-add-salt-to-your-water-softener/", "regions": [], "features": ["Water Softener"]},
+  {"id": "any26", "season": "Anytime", "category": "Well", "title": "Inspect pressure tank and switch", "details": "Check pressure range, short cycling.", "cadence": "Annually", "instructions_url": "https://www.energy.gov/energysaver/energy-saver", "regions": [], "features": ["Well"]},
+];
