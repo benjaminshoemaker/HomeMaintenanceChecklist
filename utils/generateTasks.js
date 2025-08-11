@@ -1,4 +1,4 @@
-import { TASK_TEMPLATES } from '../data/taskTemplates';
+import { TASK_TEMPLATES } from '../data/taskTemplates.seasonal';
 import { addWeeks, startOfToday } from 'date-fns';
 
 export function currentSeason(date = new Date()) {
